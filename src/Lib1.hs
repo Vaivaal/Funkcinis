@@ -80,8 +80,9 @@ mkCheck (State hinted toggled _ _ _) = Check (hinted ++ toggled)
 -- Toggle state's value
 -- Receive raw user input tokens
 toggle :: State -> [String] -> State
+toggle (State hinted toggled cols rows hintsNo) [] = (State hinted toggled cols rows hintsNo)
 toggle (State hinted toggled cols rows hintsNo) input =
-    untoggle (State hinted toggled cols rows hintsNo) (Coord {col = read (head input), row = read (last input)})
+    toggle (untoggle (State hinted toggled cols rows hintsNo) (Coord {col = read (head input), row = read (head (tail input))})) (drop 2 input)
 
 untoggle :: State -> Coord -> State
 untoggle (State hinted toggled cols rows hintsNo) coord 
