@@ -82,17 +82,20 @@ mkCheck (State hinted toggled _ _ _) = Check (hinted ++ toggled)
 toggle :: State -> [String] -> State
 toggle (State hinted toggled cols rows hintsNo) [] = (State hinted toggled cols rows hintsNo)
 toggle (State hinted toggled cols rows hintsNo) input =
-    toggle (untoggle (State hinted toggled cols rows hintsNo) (Coord {col = read (head input), row = read (head (tail input))})) (drop 2 input)
+    toggle (toggleTry (State hinted toggled cols rows hintsNo) (Coord {col = read (head input), row = read (head (tail input))})) (drop 2 input)
+
+toggleTry :: State -> Coord -> State
+toggleTry (State hinted toggled cols rows hintsNo) coord
+    | notElem coord (hinted ++ toggled) = State hinted (toggled ++ [coord]) cols rows hintsNo
+    | otherwise = untoggle (State hinted toggled cols rows hintsNo) coord
 
 untoggle :: State -> Coord -> State
-untoggle (State hinted toggled cols rows hintsNo) coord 
-    | notElem coord (hinted ++ toggled) = State hinted (toggled ++ [coord]) cols rows hintsNo
-    | otherwise = State hinted (delete coord toggled) cols rows hintsNo
+untoggle (State hinted toggled cols rows hintsNo) coord = State hinted (delete coord toggled) cols rows hintsNo
 
 -- IMPLEMENT
 -- Adds hint data to the game state
 hint :: State -> Document -> State
-hint (State _ toggled cols rows hintsNo) doc = State (hintsGenerator (toMap(snd (head (toMap doc))))) toggled cols rows hintsNo
+hint (State _ toggled cols rows hintsNo) doc = noDuplicates (State (hintsGenerator (toMap(snd (head (toMap doc))))) toggled cols rows hintsNo)
 
 hintsGenerator :: [(String, Document)] -> [Coord]
 hintsGenerator x | snd (head x) == DNull = []
@@ -100,3 +103,10 @@ hintsGenerator x | snd (head x) == DNull = []
 
 hintGenerator :: [(String, Document)] -> Coord
 hintGenerator x = Coord {col = toInt (snd (head x)), row = toInt (snd (last x))}
+
+noDuplicates :: State -> State
+noDuplicates (State hinted toggled cols rows hintsNo) = State hinted (elimination hinted toggled) cols rows hintsNo
+
+elimination :: [Coord] -> [Coord] -> [Coord]
+elimination [] toggled = toggled
+elimination (x:xs) toggled = elimination xs (delete x toggled)
