@@ -67,7 +67,7 @@ printRows noOfRow (State hinted toggled cols rows hintsNo) rowsPrnt = show (head
 checkIfMarked :: Int -> Int -> State -> String -> String
 checkIfMarked noOfRow noOfCol (State hinted toggled cols rows hintsNo) marks
     | noOfCol == 10 = marks
-    | elem (Coord noOfCol noOfRow) (hinted ++ toggled) = checkIfMarked noOfRow (noOfCol + 1) (State hinted toggled cols rows hintsNo) (marks ++ " #")
+    | Coord noOfCol noOfRow `elem` (hinted ++ toggled) = checkIfMarked noOfRow (noOfCol + 1) (State hinted toggled cols rows hintsNo) (marks ++ " #")
     | otherwise = checkIfMarked noOfRow (noOfCol + 1) (State hinted toggled cols rows hintsNo) (marks ++ " -")
 
 -- IMPLEMENT
@@ -80,13 +80,14 @@ mkCheck (State hinted toggled _ _ _) = Check (hinted ++ toggled)
 -- Toggle state's value
 -- Receive raw user input tokens
 toggle :: State -> [String] -> State
-toggle (State hinted toggled cols rows hintsNo) [] = (State hinted toggled cols rows hintsNo)
+toggle (State hinted toggled cols rows hintsNo) [] = State hinted toggled cols rows hintsNo
+toggle (State hinted toggled cols rows hintsNo) [_] = State hinted toggled cols rows hintsNo
 toggle (State hinted toggled cols rows hintsNo) input =
     toggle (toggleTry (State hinted toggled cols rows hintsNo) (Coord {col = read (head input), row = read (head (tail input))})) (drop 2 input)
 
 toggleTry :: State -> Coord -> State
 toggleTry (State hinted toggled cols rows hintsNo) coord
-    | notElem coord (hinted ++ toggled) = State hinted (toggled ++ [coord]) cols rows hintsNo
+    | coord `notElem` (hinted ++ toggled) = State hinted (toggled ++ [coord]) cols rows hintsNo
     | otherwise = untoggle (State hinted toggled cols rows hintsNo) coord
 
 untoggle :: State -> Coord -> State
