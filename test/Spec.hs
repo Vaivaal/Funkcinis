@@ -14,13 +14,13 @@ main = defaultMain (testGroup "Tests" [
 toYamlTests :: TestTree
 toYamlTests = testGroup "Document to yaml"
   [   testCase "null" $
-        renderDocument DNull @?= "null"
+        renderDocument DNull @?= "---\nnull"
     , testCase "int" $
-        renderDocument (DInteger 5) @?= "5"
+        renderDocument (DInteger 5) @?= "---\n5"
     , testCase "list of ints" $
         renderDocument (DList [DInteger 5, DInteger 6]) @?= listOfInts
     , testCase "String" $
-        renderDocument (DString "String test") @?= "String test"
+        renderDocument (DString "String test") @?= "---\nString test"
     , testCase "list of primitives" $
         renderDocument (DList [DInteger 5, DInteger 6, DNull, DString "testing string", DInteger 123, DNull, DString "abc", DString "12345"]) @?= listOfPrimitives
     , testCase "List of lists" $
@@ -33,14 +33,55 @@ toYamlTests = testGroup "Document to yaml"
         renderDocument (DMap [("coords", DList [DMap [("col", DInteger 1), ("row", DInteger 6)], DMap [("col", DInteger 1), ("row", DInteger 9)]])]) @?= coords2
     , testCase "DDMap" $
         renderDocument (DMap [("Test1", DMap [("Test2.1", DMap [("Test3", DNull)]), ("Test2.2", DMap [("Test3", DList[DInteger 7, DInteger 8]), ("Test3", DInteger 4)])])]) @?= dMapTest
+    , testCase "TrickySpooky Halloween-Themed" $
+        renderDocument trickyCaseDocument @?= trickyCaseString
         -- IMPLEMENT more test cases:
     -- * other primitive types/values
     -- * nested types
   ]
 
+trickyCaseDocument :: Document
+trickyCaseDocument =
+ DMap [
+    ("key1", DMap [
+        ("key2", DList [
+            DInteger 1,
+            DMap [
+                ("key3", DList [
+                    DInteger 1,
+                    DInteger 3,
+                    DNull,
+                    DMap [("", DNull)],
+                    DMap []
+                ]),
+                ("key4", DString "")],
+            DNull
+        ])
+    ]),
+    ("key5", DList [])
+ ]
+
+trickyCaseString :: String
+trickyCaseString = unlines [
+     "---",
+     "key1:",
+     "  key2:", -- Dėstytojo pavyzdyje "-" prieš DMapo elementus nebuvo dedami
+     "  - 1",
+     "  - key3:",
+     "    - 1",
+     "    - 3",
+     "    - null",
+     "    - null",
+     "    - []",
+     "    key4: \"\"",
+     "  - null",
+     "key5: []"
+ ]
+
 dMapTest :: String
 dMapTest = unlines [
-    "Test1:"
+    "---"
+  , "Test1:"
   , "  Test2.1:"
   , "    Test3: null"
   , "  Test2.2:"
@@ -52,7 +93,8 @@ dMapTest = unlines [
 
 coords2 :: String
 coords2 = unlines [
-      "coords:"
+      "---"
+    , "coords:"
     , "- col: 1"
     , "  row: 6"
     , "- col: 1"
@@ -61,45 +103,50 @@ coords2 = unlines [
 
 listInListInListInListWithNumbers :: String
 listInListInListInListWithNumbers = unlines [
-      "- - 4"
+      "---"
+    , "- - 4"
     , "  - 5"
     , "  - 6"
-    , "  - - - Sveikas"
-    , "      - Pasauli"
+    , "  - - - \"Sveikas\""
+    , "      - \"Pasauli\""
     , "  - 7"
   ]
 
 listInListInListInList :: String
 listInListInListInList = unlines [
-    "- - - - null"
+      "---"
+    , "- - - - null"
   ]
 
 listOfLists :: String
 listOfLists = unlines [
-      "- - 1"
+      "---"
+    , "- - 1"
     , "  - 2"
     , "  - 3"
-    , "- "
-    , "- - Hello"
+    , "- []"
+    , "- - \"Hello\""
     , "  - null"
-    , "  - Hi"
+    , "  - \"Hi\""
   ]
 
 listOfPrimitives :: String
 listOfPrimitives = unlines [
-      "- 5"
+      "---"
+    , "- 5"
     , "- 6"
     , "- null"
-    , "- testing string"
+    , "- \"testing string\""
     , "- 123"
     , "- null"
-    , "- abc"
-    , "- 12345"
+    , "- \"abc\""
+    , "- \"12345\""
   ]
 
 listOfInts :: String
 listOfInts = unlines [
-      "- 5"
+      "---"
+    , "- 5"
     , "- 6"
   ]
 

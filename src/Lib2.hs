@@ -26,28 +26,35 @@ instance ToDocument Check where
 -- IMPLEMENT
 -- Renders document to yaml
 renderDocument :: Document -> String
-renderDocument DNull = "null"
-renderDocument (DInteger num) = show num
-renderDocument (DString str) = str
-renderDocument (DList list) = renderList list 0 False
-renderDocument (DMap lot) = renderMap lot 0 False
+renderDocument DNull = "---\nnull"
+renderDocument (DInteger num) = "---\n" ++ show num
+renderDocument (DString str) = "---\n" ++ str
+renderDocument (DList list) = "---\n" ++ renderList list 0 False
+renderDocument (DMap lot) = "---\n" ++ renderMap lot 0 False
 
 renderList :: [Document] -> Int -> Bool -> String
 renderList [] _ _ = ""
 renderList (DNull:xs) a b = renderTab a b ++ "- " ++ "null" ++ "\n" ++ renderList xs a True
 renderList ((DInteger num):xs) a b = renderTab a b ++ "- " ++ show num ++ "\n" ++ renderList xs a True
-renderList ((DString str):xs) a b = renderTab a b ++ "- " ++ str ++ "\n" ++ renderList xs a True
-renderList ((DList []):xs) a b = renderTab a b ++ "- \n" ++ renderList xs a True
+renderList ((DString str):xs) a b = renderTab a b ++ "- " ++ "\"" ++ str ++ "\"\n" ++ renderList xs a True
+renderList ((DList []):xs) a b = renderTab a b ++ "- []\n" ++ renderList xs a True
 renderList ((DList list):xs) a b = renderTab a b ++ "- " ++ renderList list (a + 1) False ++ renderList xs a True
-renderList ((DMap lot):xs) a b = renderTab a b ++ "- " ++ renderMap lot (a + 1) b ++ renderList xs a b
+renderList ((DMap []):xs) a b = renderTab a b ++ "- []\n" ++ renderList xs a True
+renderList ((DMap lot):xs) a b = renderTab a b ++ "- " ++ renderMap lot (a + 1) False ++ renderList xs a b
 
 renderMap :: [(String, Document)] -> Int -> Bool -> String
 renderMap [] _ _ = ""
-renderMap ((s, DNull):xs) a b = renderTab a b ++ s ++ ": " ++ "null" ++ "\n" ++ renderMap xs a True
-renderMap ((s, DInteger num):xs) a b = renderTab a b ++ s ++ ": " ++ show num ++ "\n" ++ renderMap xs a True
-renderMap ((s, DString str):xs) a b = renderTab a b ++ s ++ ": " ++ str ++ "\n" ++ renderMap xs a True
-renderMap ((s, DList list):xs) a b = renderTab a b ++ s ++ ":\n" ++ renderList list a b ++ renderMap xs a True
+renderMap ((s, DNull):xs) a b = renderTab a b ++ s ++ renderColon s ++ "null" ++ "\n" ++ renderMap xs a True
+renderMap ((s, DInteger num):xs) a b = renderTab a b ++ s ++ renderColon s ++ show num ++ "\n" ++ renderMap xs a True
+renderMap ((s, DString str):xs) a b = renderTab a b ++ s ++ renderColon s ++ "\"" ++ str ++ "\"\n" ++ renderMap xs a True
+renderMap ((s, DList []):xs) a b = renderTab a b ++ s ++ renderColon s ++ "[]\n" ++ renderMap xs a True
+renderMap ((s, DList list):xs) a b = renderTab a b ++ s ++ ":\n" ++ renderList list a True ++ renderMap xs a True
+renderMap ((s, DMap []):xs) a b = renderTab a b ++ s ++ renderColon s ++ "[]\n" ++ renderMap xs a True
 renderMap ((s, DMap lot):xs) a b = renderTab a b ++ s ++ ":\n" ++ renderMap lot (a + 1) True ++ renderMap xs a True
+
+renderColon :: String -> String
+renderColon "" = ""
+renderColon _ = ": "
 
 renderTab :: Int -> Bool -> String
 renderTab a b
