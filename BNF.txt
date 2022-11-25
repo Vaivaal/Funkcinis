@@ -1,5 +1,5 @@
 Parser'is sėkmingai parsina tokį yaml, kuriame Document surenderintas šitaip:
-DNull: Gali būti null arba Null. Jei parašytas kabutės bus suprastas kaip DString.
+DNull: Gali būti null arba Null. Jei yra parašytos kabutės bus suprastas kaip DString.
 DInteger: Sudarytas vien iš skaitmenų, pirmas simbolis gali būti '-', kas reiškia, jog tai neigiamas skaičius.
 DString: Gali būti su dvigubomis ar viengubomis kabutėmis arba be kabučių. Negali turėti šių simbolių: ':', '{', '-', '['.
 DList: Prieš kiekvieną sąrašo elementą tikimasi "- ", kiekvienas gilesnis sąrašas atitraukiamas po du papildomus tarpus nuo krašto.
