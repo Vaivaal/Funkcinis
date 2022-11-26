@@ -21,6 +21,9 @@ parseDocument str
 
 parse :: Either String Document -> Either String Document -> Either String Document -> Either String Document -> Either String Document -> Either String Document
 parse nullParser intParser strParser listParser mapParser =
+  -- it is quite easy to introduce an helper function `first :: [Either String Document]` -> Either String Document
+  -- which would iterate though list of Eithers until some list element is Right.
+  -- Please replace the chain of case-ofs with such "first" function
   case nullParser of
     Right doc -> Right doc
     Left _ -> case intParser of
@@ -142,6 +145,12 @@ parseMap str =
 
 parseMapItem :: String -> Either String ((String, Document), String)
 parseMapItem str =
+  -- duplicates with `parseListItem`, or at least recalls it much.
+  -- I guess we all undesrtand that `parseDocument`, `parseMapItem` and
+  -- `parseListItem` conceptually is the same function which parses
+  -- a document (but wuth different start position in a yaml document).
+  -- Please reuse `parseDocument` (or at least `parse`) in `parseMapName`
+  -- AND `parseListItem`
   case parseMapName str of
     Right (name, r) -> case parseDocNull (takeWhile (/= '\n') r) of
       Right item -> Right ((name, item), drop 1 (dropWhile (/= '\n') str))
