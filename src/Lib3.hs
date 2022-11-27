@@ -20,18 +20,17 @@ parseDocument str
   | otherwise = parse (parseDocNull str) (parseDocInt str) (parseDocStr str) (parseDocList str) (parseDocMap str)
 
 parse :: Either String Document -> Either String Document -> Either String Document -> Either String Document -> Either String Document -> Either String Document
-parse nullParser intParser strParser listParser mapParser =
-  case nullParser of
-    Right doc -> Right doc
-    Left _ -> case intParser of
+parse nullParser intParser strParser listParser mapParser = first [nullParser, intParser, strParser, listParser, mapParser]
+
+first :: [Either String Document] -> Either String Document
+first list = 
+  if length list == 1
+    then head list
+  else
+    case head list of
       Right doc -> Right doc
-      Left _ -> case strParser of
-        Right doc -> Right doc
-        Left _ -> case listParser of
-          Right doc -> Right doc
-          Left _ -> case mapParser of
-            Right doc -> Right doc
-            Left e -> Left ("Unrecognized initial yaml:\n" ++ e)
+      Left _ -> first (drop 1 list)
+
 
 parseDocNull :: String -> Either String Document
 parseDocNull "null" = Right DNull
@@ -91,17 +90,13 @@ parseList str =
 parseListItem :: String -> Either String (Document, String)
 parseListItem str =
     case parseDash str of
-      Right s -> case parseDocNull (takeWhile (/= '\n') s) of
-        Right item -> Right (item, drop 1 (dropWhile (/= '\n') str))
-        Left _ -> case parseDocInt (takeWhile (/= '\n') s) of
-          Right item -> Right (item, drop 1 (dropWhile (/= '\n') str))
-          Left _ -> case parseDocStr (takeWhile (/= '\n') s) of
-            Right item -> Right (item, drop 1 (dropWhile (/= '\n') str))
-            Left _ -> case parseDocList (fst (parseTabs True s "")) of
-              Right item -> Right (item, snd (parseTabs True s ""))
-              Left _ -> case parseDocMap (fst (mapFromList True s "")) of
-                Right item -> Right (item, snd (mapFromList True s ""))
-                Left _ -> Left "Error on list item"
+      Right s -> case parse (parseDocNull (takeWhile (/= '\n') s)) (parseDocInt (takeWhile (/= '\n') s)) (parseDocStr (takeWhile (/= '\n') s)) (parseDocList (fst (parseTabs True s ""))) (parseDocMap (fst (mapFromList True s ""))) of
+        Right DNull -> Right (DNull, drop 1 (dropWhile (/= '\n') str))
+        Right (DInteger num) -> Right (DInteger num, drop 1 (dropWhile (/= '\n') str))
+        Right (DString st) -> Right (DString st, drop 1 (dropWhile (/= '\n') str))
+        Right (DList list) -> Right (DList list, snd (parseTabs True s ""))
+        Right (DMap mp) -> Right (DMap mp, snd (mapFromList True s ""))
+        Left e -> Left e
       Left e -> Left e
 
 mapFromList :: Bool -> String -> String -> (String, String)
@@ -143,17 +138,13 @@ parseMap str =
 parseMapItem :: String -> Either String ((String, Document), String)
 parseMapItem str =
   case parseMapName str of
-    Right (name, r) -> case parseDocNull (takeWhile (/= '\n') r) of
-      Right item -> Right ((name, item), drop 1 (dropWhile (/= '\n') str))
-      Left _ -> case parseDocInt (takeWhile (/= '\n') r) of
-        Right item -> Right ((name, item), drop 1 (dropWhile (/= '\n') str))
-        Left _ -> case parseDocStr (takeWhile (/= '\n') r) of
-          Right item -> Right ((name, item), drop 1 (dropWhile (/= '\n') str))
-          Left _ -> case parseDocList (fst (listFromMap r "")) of
-            Right item -> Right ((name, item), snd (listFromMap r ""))
-            Left _ -> case parseDocMap (fst (parseTabs False r "")) of
-              Right item -> Right ((name, item), snd (parseTabs False r ""))
-              Left e -> Left ("Error on map item " ++ e)
+    Right (name, r) -> case parse (parseDocNull (takeWhile (/= '\n') r)) (parseDocInt (takeWhile (/= '\n') r)) (parseDocStr (takeWhile (/= '\n') r)) (parseDocList (fst (listFromMap r ""))) (parseDocMap (fst (parseTabs False r ""))) of
+      Right DNull -> Right ((name, DNull), drop 1 (dropWhile (/= '\n') str))
+      Right (DInteger num) -> Right ((name, DInteger num), drop 1 (dropWhile (/= '\n') str))
+      Right (DString st) -> Right ((name, DString st), drop 1 (dropWhile (/= '\n') str))
+      Right (DList list) -> Right ((name, DList list), snd (listFromMap r ""))
+      Right (DMap mp) -> Right ((name, DMap mp), snd (parseTabs False r ""))
+      Left e -> Left e
     Left e -> Left e
 
 listFromMap :: String -> String -> (String, String)
