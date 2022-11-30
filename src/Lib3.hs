@@ -23,14 +23,12 @@ parse :: Either String Document -> Either String Document -> Either String Docum
 parse nullParser intParser strParser listParser mapParser = first [nullParser, intParser, strParser, listParser, mapParser]
 
 first :: [Either String Document] -> Either String Document
-first list = 
+first list =
   if length list == 1
     then head list
-  else
-    case head list of
+    else case head list of
       Right doc -> Right doc
       Left _ -> first (drop 1 list)
-
 
 parseDocNull :: String -> Either String Document
 parseDocNull "null" = Right DNull
@@ -81,23 +79,23 @@ parseDocList str = do
 parseList :: String -> Either String [Document]
 parseList "" = Right []
 parseList str =
-  case parseListItem str of
-    Right (x, xs) -> case parseList xs of
-      Right list -> Right (x : list)
+  case parseDash str of
+    Right s -> case parseItem s parseTabs mapFromList True of
+      Right (x, xs) -> case parseList xs of
+        Right list -> Right (x : list)
+        Left e -> Left e
       Left e -> Left e
     Left e -> Left e
 
-parseListItem :: String -> Either String (Document, String)
-parseListItem str =
-    case parseDash str of
-      Right s -> case parse (parseDocNull (takeWhile (/= '\n') s)) (parseDocInt (takeWhile (/= '\n') s)) (parseDocStr (takeWhile (/= '\n') s)) (parseDocList (fst (parseTabs True s ""))) (parseDocMap (fst (mapFromList True s ""))) of
-        Right DNull -> Right (DNull, drop 1 (dropWhile (/= '\n') str))
-        Right (DInteger num) -> Right (DInteger num, drop 1 (dropWhile (/= '\n') str))
-        Right (DString st) -> Right (DString st, drop 1 (dropWhile (/= '\n') str))
-        Right (DList list) -> Right (DList list, snd (parseTabs True s ""))
-        Right (DMap mp) -> Right (DMap mp, snd (mapFromList True s ""))
-        Left e -> Left e
-      Left e -> Left e
+parseItem :: String -> (Bool -> String -> String -> (String, String)) -> (Bool -> String -> String -> (String, String)) -> Bool -> Either String (Document, String)
+parseItem str f1 f2 b =
+  case parse (parseDocNull (takeWhile (/= '\n') str)) (parseDocInt (takeWhile (/= '\n') str)) (parseDocStr (takeWhile (/= '\n') str)) (parseDocList (fst (f1 True str ""))) (parseDocMap (fst (f2 b str ""))) of
+    Right DNull -> Right (DNull, drop 1 (dropWhile (/= '\n') str))
+    Right (DInteger num) -> Right (DInteger num, drop 1 (dropWhile (/= '\n') str))
+    Right (DString st) -> Right (DString st, drop 1 (dropWhile (/= '\n') str))
+    Right (DList list) -> Right (DList list, snd (f1 True str ""))
+    Right (DMap mp) -> Right (DMap mp, snd (f2 True str ""))
+    Left e -> Left e
 
 mapFromList :: Bool -> String -> String -> (String, String)
 mapFromList _ "" acc = (acc, "")
@@ -110,7 +108,7 @@ parseTabs :: Bool -> String -> String -> (String, String)
 parseTabs _ "" acc = (acc, "")
 parseTabs isFirst r acc
   | isFirst || take 2 r == "{}" = parseTabs False (drop 1 (dropWhile (/= '\n') r)) (acc ++ takeWhile (/= '\n') r ++ "\n")
-  | take 2 r == "  " && not isFirst = parseTabs False (drop 1 (dropWhile (/= '\n') r)) (acc ++ drop 2 (takeWhile (/= '\n') r) ++ "\n")
+  | not isFirst && take 2 r == "  " = parseTabs False (drop 1 (dropWhile (/= '\n') r)) (acc ++ drop 2 (takeWhile (/= '\n') r) ++ "\n")
   | otherwise = (acc, r)
 
 parseDash :: String -> Either String String
@@ -120,8 +118,8 @@ parseDash str
   | otherwise = Left "No dash before list item"
 
 parseDocMap :: String -> Either String Document
-parseDocMap "{}" = Right (DMap[])
-parseDocMap "{}\n" = Right (DMap[])
+parseDocMap "{}" = Right (DMap [])
+parseDocMap "{}\n" = Right (DMap [])
 parseDocMap str = do
   m <- parseMap str
   return $ DMap m
@@ -129,28 +127,18 @@ parseDocMap str = do
 parseMap :: String -> Either String [(String, Document)]
 parseMap "" = Right []
 parseMap str =
-  case parseMapItem str of
-    Right (x, xs) -> case parseMap xs of
-      Right mp -> Right (x : mp)
-      Left e -> Left e
-    Left e -> Left e
-
-parseMapItem :: String -> Either String ((String, Document), String)
-parseMapItem str =
   case parseMapName str of
-    Right (name, r) -> case parse (parseDocNull (takeWhile (/= '\n') r)) (parseDocInt (takeWhile (/= '\n') r)) (parseDocStr (takeWhile (/= '\n') r)) (parseDocList (fst (listFromMap r ""))) (parseDocMap (fst (parseTabs False r ""))) of
-      Right DNull -> Right ((name, DNull), drop 1 (dropWhile (/= '\n') str))
-      Right (DInteger num) -> Right ((name, DInteger num), drop 1 (dropWhile (/= '\n') str))
-      Right (DString st) -> Right ((name, DString st), drop 1 (dropWhile (/= '\n') str))
-      Right (DList list) -> Right ((name, DList list), snd (listFromMap r ""))
-      Right (DMap mp) -> Right ((name, DMap mp), snd (parseTabs False r ""))
+    Right (name, s) -> case parseItem s listFromMap parseTabs False of
+      Right (x, xs) -> case parseMap xs of
+        Right mp -> Right ((name, x) : mp)
+        Left e -> Left e
       Left e -> Left e
     Left e -> Left e
 
-listFromMap :: String -> String -> (String, String)
-listFromMap "" acc = (acc, "")
-listFromMap r acc
-  | head r == '-' || take 2 r == "[]" || take 2 r == "  " = listFromMap (drop 1 (dropWhile (/= '\n') r)) (acc ++ takeWhile (/= '\n') r ++ "\n")
+listFromMap :: Bool -> String -> String -> (String, String)
+listFromMap _ "" acc = (acc, "")
+listFromMap _ r acc
+  | head r == '-' || take 2 r == "[]" || take 2 r == "  " = listFromMap True (drop 1 (dropWhile (/= '\n') r)) (acc ++ takeWhile (/= '\n') r ++ "\n")
   | otherwise = (acc, r)
 
 parseMapName :: String -> Either String (String, String)
