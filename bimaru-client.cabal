@@ -28,6 +28,7 @@ library
       Lib1
       Lib2
       Lib3
+      Lib4
       Types
   other-modules:
       Paths_bimaru_client
@@ -45,7 +46,9 @@ library
     , process
     , repline
     , scientific
+    , scotty
     , split
+    , stm
     , string-conversions
     , text
     , transformers
@@ -74,7 +77,9 @@ executable bimaru-client-1
     , process
     , repline
     , scientific
+    , scotty
     , split
+    , stm
     , string-conversions
     , text
     , transformers
@@ -103,7 +108,9 @@ executable bimaru-client-2
     , process
     , repline
     , scientific
+    , scotty
     , split
+    , stm
     , string-conversions
     , text
     , transformers
@@ -132,7 +139,71 @@ executable bimaru-client-3
     , process
     , repline
     , scientific
+    , scotty
     , split
+    , stm
+    , string-conversions
+    , text
+    , transformers
+    , unordered-containers
+    , vector
+    , wreq
+    , yaml
+  default-language: Haskell2010
+
+executable bimaru-client-4
+  main-is: Main.hs
+  other-modules:
+      Paths_bimaru_client
+  hs-source-dirs:
+      app4
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      QuickCheck
+    , aeson
+    , base >=4.7 && <5
+    , base64
+    , bimaru-client
+    , bytestring
+    , containers
+    , lens
+    , process
+    , repline
+    , scientific
+    , scotty
+    , split
+    , stm
+    , string-conversions
+    , text
+    , transformers
+    , unordered-containers
+    , vector
+    , wreq
+    , yaml
+  default-language: Haskell2010
+
+executable bimaru-client-5
+  main-is: Main.hs
+  other-modules:
+      Paths_bimaru_client
+  hs-source-dirs:
+      app5
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      QuickCheck
+    , aeson
+    , base >=4.7 && <5
+    , base64
+    , bimaru-client
+    , bytestring
+    , containers
+    , lens
+    , process
+    , repline
+    , scientific
+    , scotty
+    , split
+    , stm
     , string-conversions
     , text
     , transformers
@@ -162,7 +233,9 @@ test-suite bimaru-client-test
     , process
     , repline
     , scientific
+    , scotty
     , split
+    , stm
     , string-conversions
     , tasty
     , tasty-hunit

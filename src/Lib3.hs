@@ -8,7 +8,7 @@ module Lib3 (hint, gameStart, parseDocument, GameStart, Hint) where
 import Data.Char
 import Lib1 (State (..))
 import Lib2 (findData, hintsGenerator, toInt, toIntList, toMap)
-import Types (Coord (..), Document (..), FromDocument, fromDocument)
+import Types (Coord (..), Document (..), FromDocument, fromDocument, Check(..))
 
 -- IMPLEMENT
 -- Parses a document from yaml
@@ -154,7 +154,8 @@ parseMapName str
 data GameStart = GameStart
   { occupiedCols :: [Int],
     occupiedRows :: [Int],
-    noOfHints :: Int
+    noOfHints :: Int,
+    toggles :: [Coord]
   }
   deriving (Show)
 
@@ -163,13 +164,32 @@ instance FromDocument GameStart where
     c <- toIntList (findData "occupied_cols" $ toMap doc)
     r <- toIntList (findData "occupied_rows" $ toMap doc)
     h <- toInt (findData "number_of_hints" $ toMap doc)
-    return (GameStart c r h)
+    t <- findData "toggles" $ toMap doc
+    tog <- toCoord t
+    return (GameStart c r h tog)
 
+toCoord :: Document -> Either String [Coord]
+toCoord (DMap [("coords", DList [])]) = Right []
+toCoord (DMap [("coords", DList a)]) = do toList' a
+toCoord _  = Left "Wrong document on toCoord"
+--toCoord a = Left $ show a
+
+toList' :: [Document] -> Either String [Coord]
+toList' [] = Right []
+toList' (x:xs) = case mapToCoord x of 
+  Right m -> do
+    l <- toList' xs
+    Right $ m : l
+  Left err -> Left err
+    
+mapToCoord :: Document -> Either String Coord 
+mapToCoord (DMap [("col", DInteger c),("row", DInteger r)]) = Right $ Coord {col = c, row = r}
+mapToCoord _ = Left "err"
 -- This adds game data to initial state
 -- Errors are not reported since GameStart is already totally valid adt
 -- containing all fields needed
 gameStart :: State -> GameStart -> State
-gameStart (State a b _ _ _) (GameStart c d e) = State a b c d e
+gameStart (State a b _ _ _) (GameStart c d e f) = State a f c d e
 
 -- IMPLEMENT
 -- Change right hand side as you wish

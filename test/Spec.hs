@@ -3,6 +3,7 @@ import Data.Yaml as Y ( encodeWith, defaultEncodeOptions, defaultFormatOptions, 
 import Lib1 (State (..))
 import Lib2 (gameStart, hint, renderDocument)
 import Lib3 (parseDocument)
+import Lib4 (parse, parseDoc, Parser)
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
@@ -17,9 +18,38 @@ main =
           fromYamlTests,
           gameStartTests,
           hintTests,
-          properties
+          properties,
+          newParserTests
         ]
     )
+
+newParserTests :: TestTree
+newParserTests =
+  testGroup
+    "New parsing"
+    [ testCase "null" $
+        fst (parse parseDoc "---\nNull") @?= Right DNull,
+      testCase "one" $
+        fst (parse parseDoc "1") @?= Right (DInteger 1),
+      testCase "onetwothree" $
+        fst (parse parseDoc "123") @?= Right (DInteger 123),
+      testCase "negative number" $
+        fst (parse parseDoc "-456") @?= Right (DInteger (-456)),
+      testCase "hello" $
+        fst (parse parseDoc "Hello") @?= Right (DString "Hello"),
+      testCase "empty list" $
+        fst (parse parseDoc "[]") @?= Right (DList []),
+      testCase "list" $
+        fst (parse parseDoc "- 1\n- 2\n- 3") @?= (Right (DList [DInteger 1, DInteger 2, DInteger 3])),
+      testCase "nested" $
+        fst (parse parseDoc nestedList) @?= Right (DList [DList [DInteger 1, DNull, DString "Hello"]]),
+      testCase "empty map" $
+        fst (parse parseDoc "{}") @?= Right (DMap []),
+      testCase "map in map in map" $
+        fst (parse parseDoc "Pirmas:\n  Antras:\n    Trecias: Null") @?= Right (DMap [("Pirmas", DMap [("Antras", DMap [("Trecias", DNull)])])]),
+      testCase "map" $
+        fst (parse parseDoc (renderDocument (DMap [("lHfUC",DMap [("AKgflYgi",DInteger 1),("LrPcY",DString "mTx 7cu "),("OXjKXE",DInteger (-7))]),("uNmkSjdtCV",DList [])]))) @?= Right (DMap [("lHfUC",DMap [("AKgflYgi",DInteger 1),("LrPcY",DString "mTx 7cu "),("OXjKXE",DInteger (-7))]),("uNmkSjdtCV",DList [])])
+    ]
 
 properties :: TestTree
 properties = testGroup "Properties" [golden, dogfood]
@@ -31,16 +61,18 @@ golden :: TestTree
 golden =
   testGroup
     "Handles foreign rendering"
-    [ testProperty "parseDocument (Data.Yaml.encode doc) == doc" $
-    \doc -> parseDocument (friendlyEncode doc) == Right doc
+    [ testProperty "fst (parse parseDoc (friendlyEncode doc)) == doc" $
+        \doc -> fst (parse parseDoc (friendlyEncode doc)) == Right doc 
+        -- \doc -> parseDocument (friendlyEncode doc) == Right doc
     ]
 
 dogfood :: TestTree
 dogfood =
   testGroup
     "Eating your own dogfood"
-    [ testProperty "parseDocument (renderDocument doc) == doc" $
-        \doc -> parseDocument (renderDocument doc) == Right doc
+    [ testProperty "fst (parse parseDoc (renderDocument doc)) == doc" $
+        \doc -> fst (parse parseDoc (renderDocument doc)) == Right doc
+        -- \doc -> parseDocument (renderDocument doc) == Right doc
     ]
 
 fromYamlTests :: TestTree
